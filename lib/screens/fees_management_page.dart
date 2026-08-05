@@ -13,7 +13,7 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
   TextEditingController feeController = TextEditingController();
 
   bool authenticated = false;
-  final String pagePassword = 'youssef101';
+  final String pagePassword = 'payments12';
 
   String? selectedYear;
   int selectedFeeAmount = 0;

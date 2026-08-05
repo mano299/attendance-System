@@ -236,7 +236,22 @@ class _ViewStudentsPageState extends State<ViewStudentsPage> {
       totalScore += score;
       totalMaxScore += maxScore;
     }
+    double percentage =
+        totalMaxScore == 0 ? 0 : (totalScore / totalMaxScore) * 100;
 
+    String gradeEstimate;
+
+    if (percentage >= 90) {
+      gradeEstimate = 'ممتاز';
+    } else if (percentage >= 80) {
+      gradeEstimate = 'جيد جداً';
+    } else if (percentage >= 65) {
+      gradeEstimate = 'جيد';
+    } else if (percentage >= 50) {
+      gradeEstimate = 'مقبول';
+    } else {
+      gradeEstimate = 'ضعيف';
+    }
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -295,13 +310,44 @@ class _ViewStudentsPageState extends State<ViewStudentsPage> {
               ),
               Container(
                 padding: const EdgeInsets.all(12),
-                alignment: Alignment.centerRight,
                 width: double.infinity,
-                child: Text(
-                  'المجموع الكلي: $totalScore / $totalMaxScore',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.teal),
-                  textAlign: TextAlign.right,
+                alignment: Alignment.centerRight,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'المجموع الكلي: ${totalScore.toStringAsFixed(1)} / ${totalMaxScore.toStringAsFixed(1)}',
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'النسبة: ${percentage.toStringAsFixed(1)}%',
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'التقدير: $gradeEstimate',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: percentage >= 80
+                            ? Colors.green
+                            : percentage >= 50
+                                ? Colors.orange
+                                : Colors.red,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               TextButton(
@@ -472,6 +518,7 @@ class _ViewStudentsPageState extends State<ViewStudentsPage> {
                             columns: const [
                               DataColumn(label: Text('الكود')),
                               DataColumn(label: Text('الاسم')),
+                              DataColumn(label: Text('المجموعة')),
                               DataColumn(label: Text('رقم الطالب')),
                               DataColumn(label: Text('رقم ولي الأمر')),
                               DataColumn(label: Text('السنة الدراسية')),
@@ -483,6 +530,8 @@ class _ViewStudentsPageState extends State<ViewStudentsPage> {
                               return DataRow(cells: [
                                 DataCell(Text(student['code'] ?? '')),
                                 DataCell(Text(student['name'] ?? '')),
+                                DataCell(Text(
+                                    student['group_name'] ?? 'بدون مجموعة')),
                                 DataCell(Text(student['phone'] ?? '')),
                                 DataCell(Text(student['parent_phone'] ?? '')),
                                 DataCell(Text(student['year'] ?? '')),

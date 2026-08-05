@@ -43,6 +43,8 @@ dependencies:
   shared_preferences: ^2.5.3
   sqflite: 2.3.3
   sqflite_common_ffi: ^2.3.0
+  unique_device_identifier: ^2.0.4
+  url_launcher: ^6.3.2
   window_manager: ^0.5.1
 
 dev_dependencies:

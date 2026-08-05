@@ -1,3 +1,4 @@
+import 'package:attendance/db_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
@@ -22,8 +23,9 @@ class _AddStudentPageState extends State<AddStudentPage> {
   final FocusNode parentPhoneFocus = FocusNode();
   final FocusNode yearFocus = FocusNode();
   final FocusNode codeFocus = FocusNode();
-
   String? selectedYear;
+  String? selectedGroup;
+  List<Map<String, dynamic>> groups = [];
   final List<String> years = [
     'الصف الأول الاعدادي',
     'الصف الثاني الاعدادي',
@@ -56,90 +58,61 @@ class _AddStudentPageState extends State<AddStudentPage> {
     super.dispose();
   }
 
-  Future<Database> openDB() async {
-    final dbPath = await getDatabasesPath();
-    return openDatabase(
-      join(dbPath, 'students.db'),
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute('''
-  CREATE TABLE students (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    phone TEXT,
-    parent_phone TEXT,
-    year TEXT,
-    code TEXT
-  )
-''');
+  Future<void> loadGroups(String year) async {
+  final result = await DBHelper.getGroupsByYear(year);
 
-        await db.execute('''
-      CREATE TABLE attendance (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        student_id INTEGER,
-        date TEXT,
-        FOREIGN KEY(student_id) REFERENCES students(id)
-      )
-    ''');
-
-        await db.execute('''
-      CREATE TABLE payments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        student_id INTEGER,
-        amount REAL,
-        date TEXT,
-        is_paid INTEGER,
-        FOREIGN KEY(student_id) REFERENCES students(id)
-      )
-    ''');
-      },
-    );
-  }
+  setState(() {
+    groups = List<Map<String, dynamic>>.from(result);
+    selectedGroup = null;
+  });
+}
 
   Future<void> generateStudentCode() async {
-    final db = await openDB();
-
-    final result = await db.rawQuery(
-        'SELECT MAX(CAST(code AS INTEGER)) as max_code FROM students');
-    int lastCode =
-        int.tryParse(result.first['max_code']?.toString() ?? '0') ?? 0;
-
-    String newCode = (lastCode + 1).toString().padLeft(3, '0');
-    codeController.text = newCode;
+    codeController.text = await DBHelper.generateNextCode();
   }
 
-  Future<void> insertStudent(String name, String phone, String parentPhone,
-      String year, String code, BuildContext context) async {
-    final db = await openDB();
-
-    // تحقق من الكود المكرر
+  Future<void> insertStudent(
+    String name,
+    String phone,
+    String parentPhone,
+    String year,
+    String code,
+    BuildContext context,
+  ) async {
+    final db = await DBHelper.openDB();
     final existing =
         await db.query('students', where: 'code = ?', whereArgs: [code]);
+
     if (existing.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❗ الكود مستخدم بالفعل. الرجاء توليد كود جديد')),
+        const SnackBar(
+          content: Text('❗ الكود مستخدم بالفعل'),
+        ),
       );
       return;
     }
 
-    await db.insert('students', {
-      'name': name,
-      'phone': phone,
-      'parent_phone': parentPhone,
-      'year': year,
-      'code': code,
-    });
+    await DBHelper.insertStudent(
+      name: name,
+      phone: phone,
+      parentPhone: parentPhone,
+      year: year,
+      code: code,
+      groupId: int.parse(selectedGroup!),
+    );
 
-    // مسح الحقول بعد الإضافة
     nameController.clear();
     phoneController.clear();
     parentPhoneController.clear();
     codeController.clear();
+
     setState(() {
       selectedYear = null;
+      selectedGroup = null;
+      groups.clear();
     });
 
-    FocusScope.of(context).requestFocus(nameFocus); // يبدأ من الاسم بعد الإضافة
+    FocusScope.of(context).requestFocus(nameFocus);
   }
 
   @override
@@ -213,16 +186,40 @@ class _AddStudentPageState extends State<AddStudentPage> {
                     border: OutlineInputBorder(),
                   ),
                   initialValue: selectedYear,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedYear = value;
-                    });
+                  onChanged: (value) async {
+                    selectedYear = value;
+
+                    if (value != null) {
+                      await loadGroups(value);
+                    }
+
+                    setState(() {});
+
                     FocusScope.of(context).requestFocus(codeFocus);
                   },
                   items: years
                       .map((year) =>
                           DropdownMenuItem(value: year, child: Text(year)))
                       .toList(),
+                ),
+                const SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  value: selectedGroup,
+                  decoration: const InputDecoration(
+                    labelText: '👥 المجموعة',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: groups.map((group) {
+                    return DropdownMenuItem<String>(
+                      value: group['id'].toString(),
+                      child: Text(group['name']),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedGroup = value;
+                    });
+                  },
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -248,7 +245,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
                 const SizedBox(height: 30),
                 Center(
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       String name = nameController.text.trim();
                       String phone = phoneController.text.trim();
                       String year = selectedYear ?? '';
@@ -257,7 +254,8 @@ class _AddStudentPageState extends State<AddStudentPage> {
                       if (name.isEmpty ||
                           phone.isEmpty ||
                           year.isEmpty ||
-                          code.isEmpty) {
+                          code.isEmpty ||
+                          selectedGroup == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('❗ برجاء ملئ جميع البيانات')),
                         );
@@ -269,8 +267,17 @@ class _AddStudentPageState extends State<AddStudentPage> {
                         );
                       } else {
                         String parentPhone = parentPhoneController.text.trim();
-                        insertStudent(
-                            name, phone, parentPhone, year, code, context);
+                        await insertStudent(
+                          name,
+                          phone,
+                          parentPhone,
+                          year,
+                          code,
+                          context,
+                        );
+
+                        if (!mounted) return;
+
                         showDialog(
                           context: context,
                           builder: (_) => AlertDialog(

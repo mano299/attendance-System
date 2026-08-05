@@ -13,7 +13,7 @@ class _GradesPageState extends State<GradesPage> {
   List<String> years = [];
   String? selectedYear;
 
-  List<int> sessions = [];
+  List<Map<String, dynamic>> sessions = [];
   int? selectedSession;
 
   List<Map<String, dynamic>> grades = [];
@@ -28,31 +28,60 @@ class _GradesPageState extends State<GradesPage> {
     years = await DBHelper.getAllYears();
     setState(() {});
   }
+  String _getArabicDay(DateTime date) {
+  switch (date.weekday) {
+    case DateTime.saturday:
+      return 'السبت';
+    case DateTime.sunday:
+      return 'الأحد';
+    case DateTime.monday:
+      return 'الاثنين';
+    case DateTime.tuesday:
+      return 'الثلاثاء';
+    case DateTime.wednesday:
+      return 'الأربعاء';
+    case DateTime.thursday:
+      return 'الخميس';
+    case DateTime.friday:
+      return 'الجمعة';
+    default:
+      return '';
+  }
+}
 
   Future<void> onYearSelected(String year) async {
     selectedYear = year;
     selectedSession = null;
     grades = [];
-    sessions = await DBHelper.getSessionNumbersByYear(year);
+    sessions = await DBHelper.getSessionsWithDatesByYear(year);
     setState(() {});
   }
 
   Future<void> onSessionSelected(int sessionNumber) async {
-    selectedSession = sessionNumber;
-    grades =
-        await DBHelper.getGradesByYearAndSession(selectedYear!, sessionNumber);
+  selectedSession = sessionNumber;
 
-    // فتح الصفحة الجديدة مع تمرير الدرجات
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SessionGradesPage(
-          sessionNumber: sessionNumber,
-          grades: grades,
-        ),
+  grades = await DBHelper.getGradesByYearAndSession(
+    selectedYear!,
+    sessionNumber,
+  );
+
+  final session = sessions.firstWhere(
+    (s) => s['session_number'] == sessionNumber,
+  );
+
+  final sessionDate = session['date'];
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => SessionGradesPage(
+        sessionNumber: sessionNumber,
+        sessionDate: sessionDate,
+        grades: grades,
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -99,13 +128,23 @@ class _GradesPageState extends State<GradesPage> {
                   alignment: Alignment.centerRight,
                   child: Wrap(
                     spacing: 8,
-                    children: sessions.map((sessionNum) {
-                      return ChoiceChip(
-                        label: Text(sessionNum.toString()),
-                        selected: selectedSession == sessionNum,
-                        onSelected: (_) => onSessionSelected(sessionNum),
-                      );
-                    }).toList(),
+                    children: sessions.map((session) {
+  final sessionNum = session['session_number'];
+  final date = session['date'];
+
+  final dayName = _getArabicDay(
+    DateTime.parse(date),
+  );
+
+  return ChoiceChip(
+    label: Text(
+      'تسميع $sessionNum\n$dayName\n$date',
+      textAlign: TextAlign.center,
+    ),
+    selected: selectedSession == sessionNum,
+    onSelected: (_) => onSessionSelected(sessionNum),
+  );
+}).toList(),
                   ),
                 ),
               ],

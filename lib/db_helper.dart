@@ -4,8 +4,6 @@ import 'package:path/path.dart';
 
 class DBHelper {
   static Future<Database> openDB() async {
-  
-
     final dbPath = await databaseFactory.getDatabasesPath();
     final path = join(dbPath, 'students.db');
 
@@ -16,13 +14,15 @@ class DBHelper {
         onCreate: (db, version) async {
           await db.execute('''
             CREATE TABLE students (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT,
-              phone TEXT,
-              parent_phone TEXT,
-              year TEXT,
-              code TEXT
-            )
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT,
+  phone TEXT,
+  parent_phone TEXT,
+  year TEXT,
+  code TEXT,
+  group_id INTEGER,
+  FOREIGN KEY(group_id) REFERENCES groups(id)
+)
           ''');
 
           await db.execute('''
@@ -31,6 +31,14 @@ class DBHelper {
   username TEXT UNIQUE,
   password TEXT,
   role TEXT
+)
+''');
+          await db.execute('''
+  CREATE TABLE groups (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT,
+  year TEXT,
+  days TEXT
 )
 ''');
           await db.execute('''
@@ -100,6 +108,12 @@ CREATE TABLE discounts(
     amount INTEGER
   )
 ''');
+          await db.execute('''
+  CREATE TABLE license(
+ id INTEGER PRIMARY KEY,
+ key TEXT
+)
+''');
 
           await db.insert('meta', {'key': 'last_code', 'value': '0'});
         },
@@ -139,20 +153,12 @@ CREATE TABLE discounts(
     required String phone,
     required String parentPhone,
     required String year,
+    required int groupId,
     String? code,
   }) async {
     final db = await openDB();
 
     code ??= await generateNextCode();
-
-    final existing = await db.query(
-      'students',
-      where: 'code = ?',
-      whereArgs: [code],
-    );
-    if (existing.isNotEmpty) {
-      throw Exception('الكود مستخدم بالفعل');
-    }
 
     await db.insert('students', {
       'name': name,
@@ -160,7 +166,20 @@ CREATE TABLE discounts(
       'parent_phone': parentPhone,
       'year': year,
       'code': code,
+      'group_id': groupId,
     });
+  }
+
+  static Future<List<Map<String, dynamic>>> getGroupsByYear(
+    String year,
+  ) async {
+    final db = await openDB();
+
+    return await db.query(
+      'groups',
+      where: 'year = ?',
+      whereArgs: [year],
+    );
   }
 
   static Future<void> updateStudent({
@@ -289,24 +308,24 @@ CREATE TABLE discounts(
   }
 
   static Future<Map<String, int>> fetchTodayPaymentsSummary() async {
-  final db = await openDB();
-  final today = DateTime.now().toIso8601String().substring(0, 10);
+    final db = await openDB();
+    final today = DateTime.now().toIso8601String().substring(0, 10);
 
-  final paidToday = await db.rawQuery(
-    'SELECT COUNT(*) as count FROM payments WHERE date LIKE ? AND is_paid = 1',
-    ['$today%'],
-  );
+    final paidToday = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM payments WHERE date LIKE ? AND is_paid = 1',
+      ['$today%'],
+    );
 
-  final amountToday = await db.rawQuery(
-    'SELECT SUM(amount) as total FROM payments WHERE date LIKE ? AND is_paid = 1',
-    ['$today%'],
-  );
+    final amountToday = await db.rawQuery(
+      'SELECT SUM(amount) as total FROM payments WHERE date LIKE ? AND is_paid = 1',
+      ['$today%'],
+    );
 
-  return {
-    'paidToday': (paidToday.first['count'] as int?) ?? 0,
-    'amountToday': (amountToday.first['total'] as num?)?.toInt() ?? 0,
-  };
-}
+    return {
+      'paidToday': (paidToday.first['count'] as int?) ?? 0,
+      'amountToday': (amountToday.first['total'] as num?)?.toInt() ?? 0,
+    };
+  }
 
   static Future<List<Map<String, dynamic>>> fetchAttendanceByDate() async {
     final db = await openDB();
@@ -410,16 +429,43 @@ CREATE TABLE discounts(
     return result.map((row) => row['session_number'] as int).toList();
   }
 
-// جلب درجات الطلاب حسب السنة ورقم التسميع
-  static Future<List<Map<String, dynamic>>> getGradesByYearAndSession(
-      String year, int sessionNumber) async {
+  static Future<List<Map<String, dynamic>>> getSessionsWithDatesByYear(
+      String year) async {
     final db = await openDB();
-    final result = await db.rawQuery('''
-    SELECT s.name, r.score, r.notes
+
+    return await db.rawQuery('''
+    SELECT
+      r.session_number,
+      MIN(r.date) as date
     FROM recitations r
     JOIN students s ON r.student_id = s.id
-    WHERE s.year = ? AND r.session_number = ?
+    WHERE s.year = ?
+    GROUP BY r.session_number
+    ORDER BY r.session_number
+  ''', [year]);
+  }
+
+// جلب درجات الطلاب حسب السنة ورقم التسميع
+  static Future<List<Map<String, dynamic>>> getGradesByYearAndSession(
+    String year,
+    int sessionNumber,
+  ) async {
+    final db = await openDB();
+
+    final result = await db.rawQuery('''
+   SELECT
+  s.name,
+  s.code,
+  s.parent_phone,
+  r.score,
+  r.max_score,
+  r.notes,
+  r.date
+FROM recitations r
+JOIN students s ON r.student_id = s.id
+WHERE s.year = ? AND r.session_number = ?
   ''', [year, sessionNumber]);
+
     return result;
   }
 
@@ -560,9 +606,9 @@ CREATE TABLE discounts(
   }
 
   static Future<List<Map<String, dynamic>>> fetchStudentsWithPayments() async {
-    final db = await openDB();
+  final db = await openDB();
 
-    final result = await db.rawQuery('''
+  final result = await db.rawQuery('''
     SELECT 
       s.id,
       s.name,
@@ -570,15 +616,18 @@ CREATE TABLE discounts(
       s.phone,
       s.parent_phone,
       s.year,
+      s.group_id,
+      g.name AS group_name,
       IFNULL(SUM(p.amount), 0) AS totalPaid
     FROM students s
+    LEFT JOIN groups g ON s.group_id = g.id
     LEFT JOIN payments p ON s.id = p.student_id AND p.is_paid = 1
     GROUP BY s.id
     ORDER BY s.year, s.name
   ''');
 
-    return result;
-  }
+  return result;
+}
 
 // حفظ / تحديث مصاريف السنة
   static Future<void> saveFee(String year, int amount) async {
@@ -825,5 +874,43 @@ CREATE TABLE discounts(
 
     // لو double، نحوله لـ int (يمكن تقريب)
     return (total as num).toInt();
+  }
+
+  static Future<void> addGroup(
+    String name,
+    String year,
+    String days,
+  ) async {
+    final db = await openDB();
+
+    await db.insert(
+      'groups',
+      {
+        'name': name,
+        'year': year,
+        'days': days,
+      },
+    );
+  }
+static Future<String?> getLicense() async {
+    final db = await DBHelper.openDB();
+
+  final result = await db.query(
+    'license',
+    limit: 1,
+  );
+
+  if (result.isEmpty) return null;
+
+  return result.first['key'] as String;
+}
+  static Future<void> saveLicense(String key) async {
+    final db = await DBHelper.openDB();
+
+    await db.delete('license');
+
+    await db.insert('license', {
+      'key': key,
+    });
   }
 }

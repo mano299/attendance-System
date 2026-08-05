@@ -10,8 +10,138 @@ class AdminPage extends StatefulWidget {
 }
 
 class _AdminPageState extends State<AdminPage> {
-  Widget? selectedPage;
+  final groupNameController = TextEditingController();
 
+  String? selectedYearForGroup;
+
+  final List<String> years = [
+    'الصف الأول الاعدادي',
+    'الصف الثاني الاعدادي',
+    'الصف الثالث الاعدادي',
+    'الصف الأول الثانوي',
+    'الصف الثاني الثانوي',
+    'الصف الثالث الثانوي'
+  ];
+
+  final Map<String, bool> days = {
+    'السبت': false,
+    'الأحد': false,
+    'الاثنين': false,
+    'الثلاثاء': false,
+    'الأربعاء': false,
+    'الخميس': false,
+    'الجمعة': false,
+  };
+  Widget buildGroupsView() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'إدارة المجموعات',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: groupNameController,
+            decoration: const InputDecoration(
+              labelText: 'اسم المجموعة',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 15),
+          DropdownButtonFormField<String>(
+            value: selectedYearForGroup,
+            decoration: const InputDecoration(
+              labelText: 'السنة الدراسية',
+              border: OutlineInputBorder(),
+            ),
+            items: years.map((year) {
+              return DropdownMenuItem(
+                value: year,
+                child: Text(year),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                selectedYearForGroup = value;
+              });
+            },
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'أيام المجموعة',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Wrap(
+            spacing: 10,
+            children: days.keys.map((day) {
+              return FilterChip(
+                label: Text(day),
+                selected: days[day]!,
+                onSelected: (value) {
+                  setState(() {
+                    days[day] = value;
+                  });
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.save),
+            label: const Text('حفظ المجموعة'),
+            onPressed: () async {
+              if (groupNameController.text.isEmpty ||
+    selectedYearForGroup == null) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('برجاء إدخال اسم المجموعة واختيار السنة'),
+    ),
+  );
+  return;
+}
+
+              final selectedDays = days.entries
+                  .where((e) => e.value)
+                  .map((e) => e.key)
+                  .join(',');
+
+              await DBHelper.addGroup(
+                groupNameController.text,
+                selectedYearForGroup!,
+                selectedDays,
+              );
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم حفظ المجموعة'),
+                ),
+              );
+
+              groupNameController.clear();
+
+              setState(() {
+                selectedYearForGroup = null;
+
+                for (var key in days.keys) {
+                  days[key] = false;
+                }
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  String? selectedPage;
   Map<String, double> monthlyIncome = {}; // دخل كل شهر
 
   @override
@@ -46,7 +176,17 @@ class _AdminPageState extends State<AdminPage> {
                   icon: Icons.attach_money,
                   onTap: () {
                     setState(() {
-                      selectedPage = const FeesManagementPage();
+                      selectedPage = 'fees';
+                    });
+                  },
+                ),
+                adminCard(
+                  title: 'إدارة المجموعات',
+                  color: Colors.purple,
+                  icon: Icons.groups,
+                  onTap: () {
+                    setState(() {
+                      selectedPage = 'groups';
                     });
                   },
                 ),
@@ -64,7 +204,7 @@ class _AdminPageState extends State<AdminPage> {
                   icon: Icons.bar_chart,
                   onTap: () {
                     setState(() {
-                      selectedPage = buildMonthlyIncomeView();
+                      selectedPage = 'income';
                     });
                   },
                 ),
@@ -74,9 +214,25 @@ class _AdminPageState extends State<AdminPage> {
 
           // محتوى الصفحة
           Expanded(
-            child: selectedPage ??
-                const Center(
-                    child: Text('اختر صفحة من القائمة الجانبية')), // الافتراضي
+            child: Builder(
+              builder: (context) {
+                switch (selectedPage) {
+                  case 'fees':
+                    return const FeesManagementPage();
+
+                  case 'groups':
+                    return buildGroupsView();
+
+                  case 'income':
+                    return buildMonthlyIncomeView();
+
+                  default:
+                    return const Center(
+                      child: Text('اختر صفحة من القائمة الجانبية'),
+                    );
+                }
+              },
+            ),
           ),
         ],
       ),

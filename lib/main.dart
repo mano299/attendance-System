@@ -1,5 +1,5 @@
 import 'package:attendance/db_helper.dart';
-import 'package:attendance/screens/login.dart';
+import 'package:attendance/screens/license_gateway.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -31,7 +31,7 @@ class AttendanceSystem extends StatelessWidget {
       locale: Locale('ar'),
       supportedLocales: [Locale('ar')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      home: LoginView(),
+      home: LicenseGate(),
       debugShowCheckedModeBanner: false,
     );
   }
