@@ -14,7 +14,7 @@ class _DiscountsPageState extends State<DiscountsPage> {
   final TextEditingController reasonController = TextEditingController();
 
   List<Map<String, dynamic>> discounts = [];
-
+  static const String adminPassword = "123456";
   @override
   void initState() {
     super.initState();
@@ -105,6 +105,51 @@ class _DiscountsPageState extends State<DiscountsPage> {
     loadDiscounts();
   }
 
+  Future<bool> verifyPassword() async {
+    final controller = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('تأكيد العملية'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'أدخل كلمة المرور لتصفير الخصومات',
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'كلمة المرور',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(
+                context,
+                controller.text == adminPassword,
+              );
+            },
+            child: const Text('تأكيد'),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -112,12 +157,59 @@ class _DiscountsPageState extends State<DiscountsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'إدارة الخصومات',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'إدارة الخصومات',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              OutlinedButton.icon(
+                icon: const Icon(
+                  Icons.restart_alt,
+                  color: Colors.red,
+                ),
+                label: const Text(
+                  'تصفير الخصومات',
+                  style: TextStyle(
+                    color: Colors.red,
+                  ),
+                ),
+                onPressed: () async {
+                  final ok = await verifyPassword();
+
+                  if (!ok) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'كلمة المرور غير صحيحة',
+                          ),
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  await DBHelper.resetDiscounts();
+
+                  await loadDiscounts();
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'تم تصفير الخصومات بنجاح',
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           Row(
@@ -221,123 +313,105 @@ class _DiscountsPageState extends State<DiscountsPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: SingleChildScrollView(
-                child: DataTable(
-                  headingRowHeight: 55,
-                  dataRowMinHeight: 65,
-                  dataRowMaxHeight: 65,
-                  headingRowColor: WidgetStateProperty.all(
-                    Colors.grey.shade100,
+              child: Expanded(
+                child: Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  columns: const [
-                    DataColumn(
-                      label: Text('المبلغ'),
-                    ),
-                    DataColumn(
-                      label: Text('السبب'),
-                    ),
-                    DataColumn(
-                      label: Text('التاريخ'),
-                    ),
-                    DataColumn(
-                      label: Text('اليوم'),
-                    ),
-                    DataColumn(
-                      label: Text('حذف'),
-                    ),
-                  ],
-                  rows: discounts.map((d) {
-                    final date = DateTime.tryParse(
-                      d['date'].toString(),
-                    );
-
-                    return DataRow(
-                      cells: [
-                        DataCell(
-                          Text(
-                            '${d['amount']} ج',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: constraints.maxWidth,
                             ),
-                          ),
-                        ),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              d['reason'],
-                              style: TextStyle(
-                                color: Colors.red.shade700,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            d['date'].toString().split(' ').first,
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            date == null ? '-' : getArabicDay(date),
-                          ),
-                        ),
-                        DataCell(
-                          IconButton(
-                            onPressed: () async {
-                              final result = await showDialog<bool>(
-                                context: context,
-                                builder: (_) => AlertDialog(
-                                  title: const Text(
-                                    'حذف الخصم',
-                                  ),
-                                  content: const Text(
-                                    'هل تريد حذف هذا الخصم؟',
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(context, false);
-                                      },
-                                      child: const Text(
-                                        'إلغاء',
+                            child: DataTable(
+                              columnSpacing: 0,
+                              columns: const [
+                                DataColumn(
+                                    label: Expanded(
+                                        child: Center(child: Text('المبلغ')))),
+                                DataColumn(
+                                    label: Expanded(
+                                        child: Center(child: Text('السبب')))),
+                                DataColumn(
+                                    label: Expanded(
+                                        child: Center(child: Text('التاريخ')))),
+                                DataColumn(
+                                    label: Expanded(
+                                        child: Center(child: Text('اليوم')))),
+                                DataColumn(
+                                    label: Expanded(
+                                        child:
+                                            Center(child: Text('الإجراءات')))),
+                              ],
+                              rows: discounts.map((d) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(
+                                      SizedBox(
+                                        width: constraints.maxWidth * .15,
+                                        child: Center(
+                                          child: Text('${d['amount']} ج'),
+                                        ),
                                       ),
                                     ),
-                                    FilledButton(
-                                      onPressed: () {
-                                        Navigator.pop(context, true);
-                                      },
-                                      child: const Text(
-                                        'حذف',
+                                    DataCell(
+                                      SizedBox(
+                                        width: constraints.maxWidth * .35,
+                                        child: Center(
+                                          child: Text(d['reason']),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      SizedBox(
+                                        width: constraints.maxWidth * .20,
+                                        child: Center(
+                                          child: Text(
+                                            d['date']
+                                                .toString()
+                                                .split(' ')
+                                                .first,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      SizedBox(
+                                        width: constraints.maxWidth * .15,
+                                        child: Center(
+                                          child: Text('الاثنين'),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      SizedBox(
+                                        width: constraints.maxWidth * .15,
+                                        child: Center(
+                                          child: IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed: () {},
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
-                                ),
-                              );
-
-                              if (result == true) {
-                                deleteDiscount(
-                                  d['id'],
                                 );
-                              }
-                            },
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.red,
+                              }).toList(),
                             ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),

@@ -981,5 +981,9 @@ WHERE s.year = ? AND r.session_number = ?
     where: 'id = ?',
     whereArgs: [id],
   );
+}static Future<void> resetDiscounts() async {
+  final db = await openDB();
+
+  await db.delete('discounts');
 }
 }
