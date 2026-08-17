@@ -1,7 +1,6 @@
 import 'package:attendance/db_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class AddStudentPage extends StatefulWidget {

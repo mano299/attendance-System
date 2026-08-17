@@ -44,8 +44,17 @@ class _AttendanceSessionPageState extends State<AttendanceSessionPage> {
     final absent = List<Map<String, dynamic>>.from(
         await DBHelper.getAbsentStudents(widget.year, widget.sessionId));
 
-    present.sort((a, b) => a['name'].compareTo(b['name']));
-    absent.sort((a, b) => a['name'].compareTo(b['name']));
+   present.sort((a, b) {
+  final codeA = int.tryParse(a['code'].toString()) ?? 0;
+  final codeB = int.tryParse(b['code'].toString()) ?? 0;
+  return codeA.compareTo(codeB);
+});
+
+absent.sort((a, b) {
+  final codeA = int.tryParse(a['code'].toString()) ?? 0;
+  final codeB = int.tryParse(b['code'].toString()) ?? 0;
+  return codeA.compareTo(codeB);
+});
 
     setState(() {
       presentStudents = present;
@@ -108,9 +117,20 @@ class _AttendanceSessionPageState extends State<AttendanceSessionPage> {
               child: Text(
                 student['parent_phone'] ?? '',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.red, // رقم ولي الأمر باللون الأحمر
+                ),
+              ),
+            ),
+          if (showParentPhone)
+            Expanded(
+              flex: 3,
+              child: Text(
+                student['phone'] ?? '',
+                style: const TextStyle(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
@@ -216,9 +236,10 @@ class _AttendanceSessionPageState extends State<AttendanceSessionPage> {
                       style: pw.TextStyle(font: ttf)),
                   pw.SizedBox(height: 20),
                   pw.Table.fromTextArray(
-                    headers: ['رقم ولي الامر', 'الكود', 'الاسم'],
+                    headers: ['رقم الطالب', 'رقم ولي الامر', 'الكود', 'الاسم'],
                     data: filteredAbsent
                         .map((s) => [
+                              s['phone'].toString(),
                               s['parent_phone'].toString(),
                               s['code'].toString(),
                               s['name'].toString(),

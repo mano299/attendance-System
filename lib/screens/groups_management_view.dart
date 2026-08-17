@@ -101,7 +101,7 @@ class _GroupsManagementViewState
                       ),
                       const SizedBox(height: 15),
                       DropdownButtonFormField<String>(
-                        value: selectedYear,
+                        initialValue: selectedYear,
                         items: years.map((e) {
                           return DropdownMenuItem(
                             value: e,

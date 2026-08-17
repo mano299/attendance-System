@@ -508,17 +508,27 @@ WHERE s.year = ? AND r.session_number = ?
   }
 
   static Future<List<Map<String, dynamic>>> getAbsentStudents(
-      String year, int sessionId) async {
-    final db = await DBHelper.openDB();
-    return await db.rawQuery('''
-    SELECT students.id, students.name, students.code, students.parent_phone
+    String year,
+    int sessionId,
+) async {
+  final db = await DBHelper.openDB();
+
+  return await db.rawQuery('''
+    SELECT
+      students.id,
+      students.name,
+      students.code,
+      students.phone,
+      students.parent_phone
     FROM students
     WHERE students.year = ?
     AND students.id NOT IN (
-      SELECT student_id FROM attendance WHERE session_id = ?
+      SELECT student_id
+      FROM attendance
+      WHERE session_id = ?
     )
   ''', [year, sessionId]);
-  }
+}
 
   static Future<Map<String, dynamic>?> getStudentByCodeAndYear(
       String code, String year) async {
