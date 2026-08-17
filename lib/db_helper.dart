@@ -46,7 +46,9 @@ CREATE TABLE discounts(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   amount REAL,
   reason TEXT,
-  date TEXT
+  date TEXT,
+  month TEXT,
+  day_name TEXT
 )
 ''');
 
@@ -971,4 +973,13 @@ WHERE s.year = ? AND r.session_number = ?
       'key': key,
     });
   }
+  static Future<void> deleteDiscount(int id) async {
+  final db = await openDB();
+
+  await db.delete(
+    'discounts',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
 }
