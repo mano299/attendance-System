@@ -606,9 +606,9 @@ WHERE s.year = ? AND r.session_number = ?
   }
 
   static Future<List<Map<String, dynamic>>> fetchStudentsWithPayments() async {
-  final db = await openDB();
+    final db = await openDB();
 
-  final result = await db.rawQuery('''
+    final result = await db.rawQuery('''
     SELECT 
       s.id,
       s.name,
@@ -626,8 +626,8 @@ WHERE s.year = ? AND r.session_number = ?
     ORDER BY s.year, s.name
   ''');
 
-  return result;
-}
+    return result;
+  }
 
 // حفظ / تحديث مصاريف السنة
   static Future<void> saveFee(String year, int amount) async {
@@ -892,18 +892,76 @@ WHERE s.year = ? AND r.session_number = ?
       },
     );
   }
-static Future<String?> getLicense() async {
+
+  static Future<List<Map<String, dynamic>>> getAllGroups() async {
+    final db = await openDB();
+
+    return await db.rawQuery('''
+    SELECT
+      g.*,
+      COUNT(s.id) as students_count
+    FROM groups g
+    LEFT JOIN students s ON s.group_id = g.id
+    GROUP BY g.id
+    ORDER BY g.year, g.name
+  ''');
+  }
+
+  static Future<void> updateGroup({
+    required int id,
+    required String name,
+    required String year,
+    required String days,
+  }) async {
+    final db = await openDB();
+
+    await db.update(
+      'groups',
+      {
+        'name': name,
+        'year': year,
+        'days': days,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  static Future<void> deleteGroup(int id) async {
+    final db = await openDB();
+
+    final students = await db.query(
+      'students',
+      where: 'group_id = ?',
+      whereArgs: [id],
+    );
+
+    if (students.isNotEmpty) {
+      throw Exception(
+        'لا يمكن حذف المجموعة لأنها تحتوي على طلاب',
+      );
+    }
+
+    await db.delete(
+      'groups',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  static Future<String?> getLicense() async {
     final db = await DBHelper.openDB();
 
-  final result = await db.query(
-    'license',
-    limit: 1,
-  );
+    final result = await db.query(
+      'license',
+      limit: 1,
+    );
 
-  if (result.isEmpty) return null;
+    if (result.isEmpty) return null;
 
-  return result.first['key'] as String;
-}
+    return result.first['key'] as String;
+  }
+
   static Future<void> saveLicense(String key) async {
     final db = await DBHelper.openDB();
 

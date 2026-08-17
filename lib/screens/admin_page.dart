@@ -1,5 +1,6 @@
 import 'package:attendance/db_helper.dart';
 import 'package:attendance/screens/fees_management_page.dart';
+import 'package:attendance/screens/groups_management_view.dart';
 import 'package:flutter/material.dart';
 
 class AdminPage extends StatefulWidget {
@@ -30,112 +31,7 @@ class _AdminPageState extends State<AdminPage> {
     'الجمعة': false,
   };
   Widget buildGroupsView() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'إدارة المجموعات',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: groupNameController,
-            decoration: const InputDecoration(
-              labelText: 'اسم المجموعة',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 15),
-          DropdownButtonFormField<String>(
-            initialValue: selectedYearForGroup,
-            decoration: const InputDecoration(
-              labelText: 'السنة الدراسية',
-              border: OutlineInputBorder(),
-            ),
-            items: years.map((year) {
-              return DropdownMenuItem(
-                value: year,
-                child: Text(year),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                selectedYearForGroup = value;
-              });
-            },
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'أيام المجموعة',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Wrap(
-            spacing: 10,
-            children: days.keys.map((day) {
-              return FilterChip(
-                label: Text(day),
-                selected: days[day]!,
-                onSelected: (value) {
-                  setState(() {
-                    days[day] = value;
-                  });
-                },
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.save),
-            label: const Text('حفظ المجموعة'),
-            onPressed: () async {
-              if (groupNameController.text.isEmpty ||
-    selectedYearForGroup == null) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('برجاء إدخال اسم المجموعة واختيار السنة'),
-    ),
-  );
-  return;
-}
-
-              final selectedDays = days.entries
-                  .where((e) => e.value)
-                  .map((e) => e.key)
-                  .join(',');
-
-              await DBHelper.addGroup(
-                groupNameController.text,
-                selectedYearForGroup!,
-                selectedDays,
-              );
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('تم حفظ المجموعة'),
-                ),
-              );
-
-              groupNameController.clear();
-
-              setState(() {
-                selectedYearForGroup = null;
-
-                for (var key in days.keys) {
-                  days[key] = false;
-                }
-              });
-            },
-          ),
-        ],
-      ),
-    );
+    return const GroupsManagementView();
   }
 
   String? selectedPage;
