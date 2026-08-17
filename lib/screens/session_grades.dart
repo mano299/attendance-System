@@ -77,6 +77,7 @@ $studentName
 $score / $maxScore
 
 جزاكم الله خيراً
+#مستر سيد كساب || أستاذ الجغرافيا والتاريخ والدراسات الاجتماعية
 ''';
 
     final cleanPhone = phone.replaceAll('+', '');

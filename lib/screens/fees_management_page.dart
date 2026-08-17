@@ -18,14 +18,11 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
   String? selectedYear;
   int selectedFeeAmount = 0;
 
-  List<String> secondaryYears = [
-    'الصف الأول الاعدادي',
-    'الصف الثاني الاعدادي',
-    'الصف الثالث الاعدادي',
-    'الصف الأول الثانوي',
-    'الصف الثاني الثانوي',
-    'الصف الثالث الثانوي',
-  ];
+  final List<String> secondaryYears = [
+  'الصف الأول الثانوي',
+  'الصف الثاني الثانوي',
+  'الصف الثالث الثانوي',
+];
 
   List<Map<String, dynamic>> filteredStudents = [];
 

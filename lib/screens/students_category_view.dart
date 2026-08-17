@@ -68,11 +68,18 @@ class _StudentsCategoryViewState extends State<StudentsCategoryView> {
     for (var s in allStudents) {
       final paid =
           await DBHelper.hasPaidBeforeMonth(s['id'], selectedYear!, monthValue);
+
       if ((widget.category == 'paid' && paid) ||
           (widget.category == 'unpaid' && !paid)) {
         students.add(s);
       }
     }
+
+    students.sort(
+      (a, b) => int.parse(a['code'].toString())
+          .compareTo(int.parse(b['code'].toString())),
+    );
+
     setState(() {});
   }
 
@@ -352,8 +359,8 @@ class _StudentsCategoryViewState extends State<StudentsCategoryView> {
                             ),
                             child: DataTable(
                               columnSpacing: 24,
-                              headingRowColor: WidgetStateProperty.all(
-                                  Colors.teal.shade100),
+                              headingRowColor:
+                                  WidgetStateProperty.all(Colors.teal.shade100),
                               columns: const [
                                 DataColumn(
                                     label: Text('الاسم',

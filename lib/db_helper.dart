@@ -655,7 +655,7 @@ WHERE s.year = ? AND r.session_number = ?
     FROM students s
     LEFT JOIN payments p ON s.id = p.student_id AND p.month = ?
     WHERE s.year = ?
-    ORDER BY s.name ASC
+    ORDER BY name
   ''', [selectedMonth, year]);
 
     return result;

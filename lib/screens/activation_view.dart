@@ -31,6 +31,7 @@ class _ActivationViewState extends State<ActivationView> {
     });
   }
 
+  @override
   Future<void> activate() async {
     final valid =
         await LicenseService.verify(controller.text.trim());

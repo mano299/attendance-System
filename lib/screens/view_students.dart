@@ -14,13 +14,10 @@ class _ViewStudentsPageState extends State<ViewStudentsPage> {
   TextEditingController searchController = TextEditingController();
 
   List<String> orderedYears = [
-    'الصف الأول الاعدادي',
-    'الصف الثاني الاعدادي',
-    'الصف الثالث الاعدادي',
-    'الصف الأول الثانوي',
-    'الصف الثاني الثانوي',
-    'الصف الثالث الثانوي',
-  ];
+  'الصف الأول الثانوي',
+  'الصف الثاني الثانوي',
+  'الصف الثالث الثانوي',
+];
   String? selectedYear;
 
   @override

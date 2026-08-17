@@ -14,13 +14,10 @@ class _AddSessionPageState extends State<AddSessionPage> {
   String? selectedYear;
 
   final List<String> years = [
-    'الصف الأول الاعدادي',
-    'الصف الثاني الاعدادي',
-    'الصف الثالث الاعدادي',
-    'الصف الأول الثانوي',
-    'الصف الثاني الثانوي',
-    'الصف الثالث الثانوي',
-  ];
+  'الصف الأول الثانوي',
+  'الصف الثاني الثانوي',
+  'الصف الثالث الثانوي',
+];
 
   @override
   Widget build(BuildContext context) {

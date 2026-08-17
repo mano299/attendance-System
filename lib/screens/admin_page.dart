@@ -15,13 +15,10 @@ class _AdminPageState extends State<AdminPage> {
   String? selectedYearForGroup;
 
   final List<String> years = [
-    'الصف الأول الاعدادي',
-    'الصف الثاني الاعدادي',
-    'الصف الثالث الاعدادي',
-    'الصف الأول الثانوي',
-    'الصف الثاني الثانوي',
-    'الصف الثالث الثانوي'
-  ];
+  'الصف الأول الثانوي',
+  'الصف الثاني الثانوي',
+  'الصف الثالث الثانوي',
+];
 
   final Map<String, bool> days = {
     'السبت': false,
@@ -55,7 +52,7 @@ class _AdminPageState extends State<AdminPage> {
           ),
           const SizedBox(height: 15),
           DropdownButtonFormField<String>(
-            value: selectedYearForGroup,
+            initialValue: selectedYearForGroup,
             decoration: const InputDecoration(
               labelText: 'السنة الدراسية',
               border: OutlineInputBorder(),

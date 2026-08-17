@@ -27,13 +27,10 @@ class _AddStudentPageState extends State<AddStudentPage> {
   String? selectedGroup;
   List<Map<String, dynamic>> groups = [];
   final List<String> years = [
-    'الصف الأول الاعدادي',
-    'الصف الثاني الاعدادي',
-    'الصف الثالث الاعدادي',
-    'الصف الأول الثانوي',
-    'الصف الثاني الثانوي',
-    'الصف الثالث الثانوي'
-  ];
+  'الصف الأول الثانوي',
+  'الصف الثاني الثانوي',
+  'الصف الثالث الثانوي',
+];
 
   @override
   void initState() {
@@ -204,7 +201,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
                 ),
                 const SizedBox(height: 20),
                 DropdownButtonFormField<String>(
-                  value: selectedGroup,
+                  initialValue: selectedGroup,
                   decoration: const InputDecoration(
                     labelText: '👥 المجموعة',
                     border: OutlineInputBorder(),
