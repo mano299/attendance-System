@@ -2,6 +2,7 @@ import 'package:attendance/db_helper.dart';
 import 'package:attendance/screens/fees_management_page.dart';
 import 'package:attendance/screens/groups_management_view.dart';
 import 'package:flutter/material.dart';
+import 'package:attendance/screens/message_templates_page.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -16,10 +17,10 @@ class _AdminPageState extends State<AdminPage> {
   String? selectedYearForGroup;
 
   final List<String> years = [
-  'الصف الأول الثانوي',
-  'الصف الثاني الثانوي',
-  'الصف الثالث الثانوي',
-];
+    'الصف الأول الثانوي',
+    'الصف الثاني الثانوي',
+    'الصف الثالث الثانوي',
+  ];
 
   final Map<String, bool> days = {
     'السبت': false,
@@ -101,6 +102,16 @@ class _AdminPageState extends State<AdminPage> {
                     });
                   },
                 ),
+                adminCard(
+                  title: 'رسائل واتساب',
+                  color: Colors.teal[600]!,
+                  icon: Icons.message,
+                  onTap: () {
+                    setState(() {
+                      selectedPage = 'messages';
+                    });
+                  },
+                ),
               ],
             ),
           ),
@@ -118,6 +129,8 @@ class _AdminPageState extends State<AdminPage> {
 
                   case 'income':
                     return buildMonthlyIncomeView();
+                  case 'messages':
+                    return const MessageTemplatesPage();
 
                   default:
                     return const Center(

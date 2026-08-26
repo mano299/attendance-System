@@ -89,7 +89,7 @@ CREATE TABLE discounts(
     date TEXT,
     session_number INTEGER,
     score REAL,
-    max_score REAL,   -- ⚡ أضف هذا العمود
+    max_score REAL,  
     notes TEXT
   )
 ''');
@@ -116,6 +116,44 @@ CREATE TABLE discounts(
  key TEXT
 )
 ''');
+          await db.execute('''
+  CREATE TABLE message_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT UNIQUE,
+    message TEXT NOT NULL
+  )
+''');
+          await db.insert('message_templates', {
+            'type': 'recitation',
+            'message': '''
+السلام عليكم
+
+نحيطكم علماً بأن درجة الطالب:
+{student_name}
+
+في التسميع رقم {session_number}
+
+هي:
+{score} / {max_score}
+
+مستر محمود الشهاوي || أستاذ الكيمياء
+''',
+          });
+
+          await db.insert('message_templates', {
+            'type': 'absence',
+            'message': '''
+السلام عليكم
+
+نحيطكم علماً بأن الطالب:
+{student_name}
+
+متغيب عن الحصة بتاريخ:
+{date}
+
+مستر محمود الشهاوي || أستاذ الكيمياء
+''',
+          });
 
           await db.insert('meta', {'key': 'last_code', 'value': '0'});
         },
@@ -1001,33 +1039,80 @@ WHERE s.year = ? AND r.session_number = ?
   }
 
   static Future<void> deleteSession(int sessionId) async {
-  final db = await openDB();
+    final db = await openDB();
 
-  await db.transaction((txn) async {
-    await txn.delete(
+    await db.transaction((txn) async {
+      await txn.delete(
+        'attendance',
+        where: 'session_id = ?',
+        whereArgs: [sessionId],
+      );
+
+      await txn.delete(
+        'sessions',
+        where: 'id = ?',
+        whereArgs: [sessionId],
+      );
+    });
+  }
+
+  static Future<void> removeStudentAttendance({
+    required int sessionId,
+    required int studentId,
+  }) async {
+    final db = await openDB();
+
+    await db.delete(
       'attendance',
-      where: 'session_id = ?',
-      whereArgs: [sessionId],
+      where: 'session_id = ? AND student_id = ?',
+      whereArgs: [sessionId, studentId],
+    );
+  }
+
+  static Future<String?> getMessageTemplate(String type) async {
+    final db = await openDB();
+
+    final result = await db.query(
+      'message_templates',
+      where: 'type = ?',
+      whereArgs: [type],
+      limit: 1,
     );
 
-    await txn.delete(
-      'sessions',
-      where: 'id = ?',
-      whereArgs: [sessionId],
+    if (result.isEmpty) return null;
+
+    return result.first['message'] as String;
+  }
+
+  static Future<void> saveMessageTemplate({
+    required String type,
+    required String message,
+  }) async {
+    final db = await openDB();
+
+    await db.insert(
+      'message_templates',
+      {
+        'type': type,
+        'message': message,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
-  });
-}
+  }
 
- static Future<void> removeStudentAttendance({
-  required int sessionId,
-  required int studentId,
-}) async {
-  final db = await openDB();
+  static Future<void> updateMessageTemplate({
+    required String type,
+    required String message,
+  }) async {
+    final db = await openDB();
 
-  await db.delete(
-    'attendance',
-    where: 'session_id = ? AND student_id = ?',
-    whereArgs: [sessionId, studentId],
-  );
-}
+    await db.update(
+      'message_templates',
+      {
+        'message': message,
+      },
+      where: 'type = ?',
+      whereArgs: [type],
+    );
+  }
 }
