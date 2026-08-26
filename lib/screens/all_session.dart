@@ -17,20 +17,22 @@ class _AllSessionsPageState extends State<AllSessionsPage> {
   String? selectedYear;
 
   Future<void> fetchSessions() async {
-  final data = List<Map<String, dynamic>>.from(await DBHelper.getAllSessions());
+    final data =
+        List<Map<String, dynamic>>.from(await DBHelper.getAllSessions());
 
-  // جمع السنوات المختلفة من الحصص
-  final yearList = data.map((e) => e['year'].toString()).toSet().toList();
+    // جمع السنوات المختلفة من الحصص
+    final yearList = data.map((e) => e['year'].toString()).toSet().toList();
 
-  // ترتيب الحصص تنازليًا حسب رقم الحصة
-  data.sort((a, b) => (b['session_number'] as int).compareTo(a['session_number'] as int));
+    // ترتيب الحصص تنازليًا حسب رقم الحصة
+    data.sort((a, b) =>
+        (b['session_number'] as int).compareTo(a['session_number'] as int));
 
-  setState(() {
-    sessions = data;
-    years = yearList;
-    filteredSessions = data; // عرض كل الحصص في البداية
-  });
-}
+    setState(() {
+      sessions = data;
+      years = yearList;
+      filteredSessions = data; // عرض كل الحصص في البداية
+    });
+  }
 
   @override
   void initState() {
@@ -44,11 +46,53 @@ class _AllSessionsPageState extends State<AllSessionsPage> {
       if (year == null) {
         filteredSessions = sessions; // عرض كل الحصص إذا لم يتم اختيار سنة
       } else {
-        filteredSessions = sessions.where((s) => s['year'] == year).toList(); // تصفية الحصص حسب السنة
+        filteredSessions = sessions
+            .where((s) => s['year'] == year)
+            .toList(); // تصفية الحصص حسب السنة
       }
       // ترتيب filteredSessions تنازليًا حسب رقم الحصة
-      filteredSessions.sort((a, b) => (b['session_number'] as int).compareTo(a['session_number'] as int));
+      filteredSessions.sort((a, b) =>
+          (b['session_number'] as int).compareTo(a['session_number'] as int));
     });
+  }
+
+  Future<void> deleteSessionDialog(
+    int sessionId,
+    int sessionNumber,
+  ) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('حذف الحصة'),
+        content: Text(
+          'هل تريد حذف الحصة رقم $sessionNumber ؟\nسيتم حذف سجل الحضور الخاص بها أيضاً.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await DBHelper.deleteSession(sessionId);
+
+      await fetchSessions();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم حذف الحصة بنجاح'),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -120,7 +164,34 @@ class _AllSessionsPageState extends State<AllSessionsPage> {
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             subtitle: Text('📅 التاريخ: $date'),
-                            trailing: Text('الحصة رقم: $sessionNumber'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('الحصة رقم: $sessionNumber'),
+                                PopupMenuButton<String>(
+                                  onSelected: (value) async {
+                                    if (value == 'delete') {
+                                      await deleteSessionDialog(
+                                        id,
+                                        sessionNumber,
+                                      );
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete, color: Colors.red),
+                                          SizedBox(width: 8),
+                                          Text('حذف الحصة'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                             onTap: () async {
                               await Navigator.push(
                                 context,

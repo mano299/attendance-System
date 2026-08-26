@@ -510,10 +510,10 @@ WHERE s.year = ? AND r.session_number = ?
   static Future<List<Map<String, dynamic>>> getAbsentStudents(
     String year,
     int sessionId,
-) async {
-  final db = await DBHelper.openDB();
+  ) async {
+    final db = await DBHelper.openDB();
 
-  return await db.rawQuery('''
+    return await db.rawQuery('''
     SELECT
       students.id,
       students.name,
@@ -528,7 +528,7 @@ WHERE s.year = ? AND r.session_number = ?
       WHERE session_id = ?
     )
   ''', [year, sessionId]);
-}
+  }
 
   static Future<Map<String, dynamic>?> getStudentByCodeAndYear(
       String code, String year) async {
@@ -983,17 +983,51 @@ WHERE s.year = ? AND r.session_number = ?
       'key': key,
     });
   }
+
   static Future<void> deleteDiscount(int id) async {
+    final db = await openDB();
+
+    await db.delete(
+      'discounts',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  static Future<void> resetDiscounts() async {
+    final db = await openDB();
+
+    await db.delete('discounts');
+  }
+
+  static Future<void> deleteSession(int sessionId) async {
   final db = await openDB();
 
-  await db.delete(
-    'discounts',
-    where: 'id = ?',
-    whereArgs: [id],
-  );
-}static Future<void> resetDiscounts() async {
-  final db = await openDB();
+  await db.transaction((txn) async {
+    await txn.delete(
+      'attendance',
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+    );
 
-  await db.delete('discounts');
+    await txn.delete(
+      'sessions',
+      where: 'id = ?',
+      whereArgs: [sessionId],
+    );
+  });
 }
+
+  static Future<void> removeAttendance({
+    required int sessionId,
+    required int studentId,
+  }) async {
+    final db = await openDB();
+
+    await db.delete(
+      'attendance',
+      where: 'session_id = ? AND student_id = ?',
+      whereArgs: [sessionId, studentId],
+    );
+  }
 }
