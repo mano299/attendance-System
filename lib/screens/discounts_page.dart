@@ -307,115 +307,193 @@ class _DiscountsPageState extends State<DiscountsPage> {
             ),
           ),
           const SizedBox(height: 25),
-          Expanded(
-            child: Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Expanded(
-                child: Card(
-                  elevation: 3,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.vertical,
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minWidth: constraints.maxWidth,
-                            ),
-                            child: DataTable(
-                              columnSpacing: 0,
-                              columns: const [
-                                DataColumn(
-                                    label: Expanded(
-                                        child: Center(child: Text('المبلغ')))),
-                                DataColumn(
-                                    label: Expanded(
-                                        child: Center(child: Text('السبب')))),
-                                DataColumn(
-                                    label: Expanded(
-                                        child: Center(child: Text('التاريخ')))),
-                                DataColumn(
-                                    label: Expanded(
-                                        child: Center(child: Text('اليوم')))),
-                                DataColumn(
-                                    label: Expanded(
-                                        child:
-                                            Center(child: Text('الإجراءات')))),
-                              ],
-                              rows: discounts.map((d) {
-                                return DataRow(
-                                  cells: [
-                                    DataCell(
-                                      SizedBox(
-                                        width: constraints.maxWidth * .15,
-                                        child: Center(
-                                          child: Text('${d['amount']} ج'),
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      SizedBox(
-                                        width: constraints.maxWidth * .35,
-                                        child: Center(
-                                          child: Text(d['reason']),
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      SizedBox(
-                                        width: constraints.maxWidth * .20,
-                                        child: Center(
-                                          child: Text(
-                                            d['date']
-                                                .toString()
-                                                .split(' ')
-                                                .first,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      SizedBox(
-                                        width: constraints.maxWidth * .15,
-                                        child: Center(
-                                          child: Text('الاثنين'),
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      SizedBox(
-                                        width: constraints.maxWidth * .15,
-                                        child: Center(
-                                          child: IconButton(
-                                            icon: const Icon(
-                                              Icons.delete_outline,
-                                              color: Colors.red,
-                                            ),
-                                            onPressed: () {},
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }).toList(),
-                            ),
-                          );
-                        },
+         Expanded(
+  child: Card(
+    elevation: 3,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: SizedBox(
+      width: double.infinity,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: constraints.maxWidth,
+                ),
+                child: DataTable(
+                  columnSpacing: 0,
+                  headingRowHeight: 55,
+                  columns: [
+                    DataColumn(
+                      label: SizedBox(
+                        width: constraints.maxWidth * 0.15,
+                        child: const Center(
+                          child: Text('المبلغ'),
+                        ),
                       ),
                     ),
-                  ),
+                    DataColumn(
+                      label: SizedBox(
+                        width: constraints.maxWidth * 0.35,
+                        child: const Center(
+                          child: Text('السبب'),
+                        ),
+                      ),
+                    ),
+                    DataColumn(
+                      label: SizedBox(
+                        width: constraints.maxWidth * 0.20,
+                        child: const Center(
+                          child: Text('التاريخ'),
+                        ),
+                      ),
+                    ),
+                    DataColumn(
+                      label: SizedBox(
+                        width: constraints.maxWidth * 0.15,
+                        child: const Center(
+                          child: Text('اليوم'),
+                        ),
+                      ),
+                    ),
+                    DataColumn(
+                      label: SizedBox(
+                        width: constraints.maxWidth * 0.15,
+                        child: const Center(
+                          child: Text('الإجراءات'),
+                        ),
+                      ),
+                    ),
+                  ],
+                  rows: discounts.map((d) {
+                    final date = DateTime.tryParse(
+                      d['date'].toString(),
+                    );
+
+                    return DataRow(
+                      cells: [
+                        DataCell(
+                          SizedBox(
+                            width: constraints.maxWidth * 0.15,
+                            child: Center(
+                              child: Text(
+                                '${d['amount']} ج',
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          SizedBox(
+                            width: constraints.maxWidth * 0.35,
+                            child: Center(
+                              child: Text(
+                                d['reason'].toString(),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          SizedBox(
+                            width: constraints.maxWidth * 0.20,
+                            child: Center(
+                              child: Text(
+                                d['date']
+                                    .toString()
+                                    .split(' ')
+                                    .first,
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          SizedBox(
+                            width: constraints.maxWidth * 0.15,
+                            child: Center(
+                              child: Text(
+                                date != null
+                                    ? getArabicDay(date)
+                                    : '-',
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          SizedBox(
+                            width: constraints.maxWidth * 0.15,
+                            child: Center(
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () async {
+                                  final confirmed =
+                                      await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        title: const Text(
+                                          'حذف الخصم',
+                                        ),
+                                        content: const Text(
+                                          'هل أنت متأكد من حذف هذا الخصم؟',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(
+                                                context,
+                                                false,
+                                              );
+                                            },
+                                            child: const Text(
+                                              'إلغاء',
+                                            ),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () {
+                                              Navigator.pop(
+                                                context,
+                                                true,
+                                              );
+                                            },
+                                            child: const Text(
+                                              'حذف',
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+
+                                  if (confirmed == true) {
+                                    await deleteDiscount(
+                                      d['id'] as int,
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
                 ),
               ),
-            ),
-          ),
+            );
+          },
+        ),
+      ),
+    ),
+  ),
+),
         ],
       ),
     );

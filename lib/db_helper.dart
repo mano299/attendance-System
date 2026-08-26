@@ -1018,16 +1018,16 @@ WHERE s.year = ? AND r.session_number = ?
   });
 }
 
-  static Future<void> removeAttendance({
-    required int sessionId,
-    required int studentId,
-  }) async {
-    final db = await openDB();
+ static Future<void> removeStudentAttendance({
+  required int sessionId,
+  required int studentId,
+}) async {
+  final db = await openDB();
 
-    await db.delete(
-      'attendance',
-      where: 'session_id = ? AND student_id = ?',
-      whereArgs: [sessionId, studentId],
-    );
-  }
+  await db.delete(
+    'attendance',
+    where: 'session_id = ? AND student_id = ?',
+    whereArgs: [sessionId, studentId],
+  );
+}
 }

@@ -4,6 +4,7 @@ import 'package:attendance/db_helper.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 
 class AttendanceSessionPage extends StatefulWidget {
@@ -44,17 +45,17 @@ class _AttendanceSessionPageState extends State<AttendanceSessionPage> {
     final absent = List<Map<String, dynamic>>.from(
         await DBHelper.getAbsentStudents(widget.year, widget.sessionId));
 
-   present.sort((a, b) {
-  final codeA = int.tryParse(a['code'].toString()) ?? 0;
-  final codeB = int.tryParse(b['code'].toString()) ?? 0;
-  return codeA.compareTo(codeB);
-});
+    present.sort((a, b) {
+      final codeA = int.tryParse(a['code'].toString()) ?? 0;
+      final codeB = int.tryParse(b['code'].toString()) ?? 0;
+      return codeA.compareTo(codeB);
+    });
 
-absent.sort((a, b) {
-  final codeA = int.tryParse(a['code'].toString()) ?? 0;
-  final codeB = int.tryParse(b['code'].toString()) ?? 0;
-  return codeA.compareTo(codeB);
-});
+    absent.sort((a, b) {
+      final codeA = int.tryParse(a['code'].toString()) ?? 0;
+      final codeB = int.tryParse(b['code'].toString()) ?? 0;
+      return codeA.compareTo(codeB);
+    });
 
     setState(() {
       presentStudents = present;
@@ -91,53 +92,156 @@ absent.sort((a, b) {
     await _loadData();
   }
 
-  Widget buildStudentTile(Map<String, dynamic> student, Icon icon,
-      {bool showParentPhone = false}) {
-    return ListTile(
-      leading: icon,
-      title: Row(
-        children: [
-          Expanded(
-            flex: 4,
-            child: Text(
-              student['name'] ?? '',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+  Widget buildStudentTile(
+  Map<String, dynamic> student,
+  Icon icon, {
+  bool showParentPhone = false,
+  bool isPresent = false,
+}) {
+  return ListTile(
+    leading: icon,
+
+    title: Row(
+      children: [
+        Expanded(
+          flex: 4,
+          child: Text(
+            student['name'] ?? '',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              student['code'] ?? '',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        Expanded(
+          flex: 2,
+          child: Text(
+            student['code'] ?? '',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          if (showParentPhone)
-            Expanded(
-              flex: 3,
-              child: Text(
-                student['parent_phone'] ?? '',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red, // رقم ولي الأمر باللون الأحمر
-                ),
+        ),
+        if (showParentPhone)
+          Expanded(
+            flex: 3,
+            child: Text(
+              student['parent_phone'] ?? '',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
               ),
             ),
-          if (showParentPhone)
-            Expanded(
-              flex: 3,
-              child: Text(
-                student['phone'] ?? '',
-                style: const TextStyle(
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
-                ),
+          ),
+        if (showParentPhone)
+          Expanded(
+            flex: 3,
+            child: Text(
+              student['phone'] ?? '',
+              style: const TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
               ),
             ),
-        ],
-      ),
-    );
+          ),
+      ],
+    ),
+
+    trailing: !isPresent
+        ? IconButton(
+            tooltip: 'إرسال رسالة غياب',
+            icon: const Icon(
+              Icons.message,
+              color: Colors.green,
+            ),
+            onPressed: () async {
+              final phone = student['parent_phone'];
+
+              if (phone == null ||
+                  phone.toString().trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'لا يوجد رقم ولي أمر لهذا الطالب',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              await sendAbsentWhatsAppMessage(
+                phone.toString(),
+                student['name'] ?? '',
+              );
+            },
+          )
+        : null,
+
+    onTap: () async {
+      await _toggleAttendance(
+        student,
+        isPresent,
+      );
+    },
+  );
+}
+
+  Future<void> _toggleAttendance(
+    Map<String, dynamic> student,
+    bool isPresent,
+  ) async {
+    final studentId = student['id'] as int;
+
+    if (isPresent) {
+      // حاضر -> غائب
+      await DBHelper.removeStudentAttendance(
+        sessionId: widget.sessionId,
+        studentId: studentId,
+      );
+    } else {
+      // غائب -> حاضر
+      await DBHelper.markStudentPresent(
+        sessionId: widget.sessionId,
+        studentId: studentId,
+      );
+    }
+
+    await _loadData();
   }
+  Future<void> sendAbsentWhatsAppMessage(
+  String phone,
+  String studentName,
+) async {
+  final message = '''
+السلام عليكم
+
+نحيطكم علماً بأن الطالب:
+$studentName
+
+كان غائبًا عن حصة اليوم
+بتاريخ ${widget.date}.
+
+نرجو المتابعة والاهتمام بالحضور.
+
+المهندس يوسف نصر || أستاذ الفيزياء
+''';
+
+  final cleanPhone = phone
+      .replaceAll('+', '')
+      .replaceAll(' ', '')
+      .trim();
+
+  final url = Uri.parse(
+    'https://wa.me/+2$cleanPhone?text=${Uri.encodeComponent(message)}',
+  );
+
+  await launchUrl(
+    url,
+    mode: LaunchMode.externalApplication,
+  );
+}
 
   Future<void> _printPresentOnly() async {
     try {
@@ -383,7 +487,11 @@ absent.sort((a, b) {
                                 final student = filteredPresent[index];
                                 return buildStudentTile(
                                   student,
-                                  Icon(Icons.check_circle, color: Colors.green),
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                  ),
+                                  isPresent: true,
                                 );
                               },
                             ),
@@ -405,8 +513,12 @@ absent.sort((a, b) {
                                 final student = filteredAbsent[index];
                                 return buildStudentTile(
                                   student,
-                                  Icon(Icons.cancel, color: Colors.red),
+                                  const Icon(
+                                    Icons.cancel,
+                                    color: Colors.red,
+                                  ),
                                   showParentPhone: true,
+                                  isPresent: false,
                                 );
                               },
                             ),
