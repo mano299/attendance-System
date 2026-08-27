@@ -76,7 +76,7 @@ $studentName
 هي:
 $score / $maxScore
 
-المهندس يوسف نصر || أستاذ الفيزياء
+مستر محمود الشهاوي || أستاذ الكيمياء
 ''';
 
     final cleanPhone = phone.replaceAll('+', '');

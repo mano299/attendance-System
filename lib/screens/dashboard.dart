@@ -18,6 +18,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool isLoading = true;
   int todayPaidCount = 0;
   int todayPaidAmount = 0;
+  
 
   List<Map<String, dynamic>> paymentsByYear = [];
   List<Map<String, dynamic>> studentsByYear = [];
@@ -56,6 +57,342 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  Future<void> showSelectiveResetDialog() async {
+  final passwordController = TextEditingController();
+
+  bool students = false;
+  bool groups = false;
+  bool attendance = false;
+  bool recitations = false;
+  bool payments = false;
+  bool discounts = false;
+  bool sessions = false;
+
+  await showDialog(
+    context: context,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Row(
+              children: [
+                Icon(
+                  Icons.delete_forever,
+                  color: Colors.red,
+                ),
+                SizedBox(width: 8),
+                Text('إعادة ضبط البيانات'),
+              ],
+            ),
+            content: SizedBox(
+              width: 450,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'اختر البيانات التي تريد حذفها:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    CheckboxListTile(
+                      value: students,
+                      title: const Text('الطلاب'),
+                      secondary: const Icon(Icons.people),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          students = value ?? false;
+                        });
+                      },
+                    ),
+
+                    CheckboxListTile(
+                      value: groups,
+                      title: const Text('المجموعات'),
+                      secondary: const Icon(Icons.groups),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          groups = value ?? false;
+                        });
+                      },
+                    ),
+
+                    CheckboxListTile(
+                      value: attendance,
+                      title: const Text('الحضور'),
+                      secondary: const Icon(Icons.fact_check),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          attendance = value ?? false;
+                        });
+                      },
+                    ),
+
+                    CheckboxListTile(
+                      value: recitations,
+                      title: const Text('التسميعات'),
+                      secondary: const Icon(Icons.menu_book),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          recitations = value ?? false;
+                        });
+                      },
+                    ),
+
+                    CheckboxListTile(
+                      value: payments,
+                      title: const Text('المدفوعات'),
+                      secondary: const Icon(Icons.payments),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          payments = value ?? false;
+                        });
+                      },
+                    ),
+
+                    CheckboxListTile(
+                      value: discounts,
+                      title: const Text('الخصومات'),
+                      secondary: const Icon(Icons.money_off),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          discounts = value ?? false;
+                        });
+                      },
+                    ),
+
+                    CheckboxListTile(
+                      value: sessions,
+                      title: const Text('الحصص'),
+                      secondary: const Icon(Icons.calendar_month),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          sessions = value ?? false;
+                        });
+                      },
+                    ),
+
+                    const Divider(),
+
+                    TextField(
+                      controller: passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'كلمة المرور',
+                        prefixIcon: Icon(Icons.lock),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('إلغاء'),
+              ),
+
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () async {
+                  if (passwordController.text != '123456') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('كلمة المرور غير صحيحة'),
+                      ),
+                    );
+                    return;
+                  }
+
+                  final hasSelection =
+                      students ||
+                      groups ||
+                      attendance ||
+                      recitations ||
+                      payments ||
+                      discounts ||
+                      sessions;
+
+                  if (!hasSelection) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'اختر على الأقل نوعًا واحدًا من البيانات',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+
+                  Navigator.pop(dialogContext);
+
+                  await showResetConfirmation(
+                    students: students,
+                    groups: groups,
+                    attendance: attendance,
+                    recitations: recitations,
+                    payments: payments,
+                    discounts: discounts,
+                    sessions: sessions,
+                  );
+                },
+                child: const Text('متابعة'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  passwordController.dispose();
+}
+Future<void> showResetConfirmation({
+  required bool students,
+  required bool groups,
+  required bool attendance,
+  required bool recitations,
+  required bool payments,
+  required bool discounts,
+  required bool sessions,
+}) async {
+  final selected = <String>[];
+
+  if (students) selected.add('الطلاب');
+  if (groups) selected.add('المجموعات');
+  if (attendance) selected.add('الحضور');
+  if (recitations) selected.add('التسميعات');
+  if (payments) selected.add('المدفوعات');
+  if (discounts) selected.add('الخصومات');
+  if (sessions) selected.add('الحصص');
+
+  await showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text(
+          '⚠️ تأكيد الحذف',
+          style: TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'أنت على وشك حذف:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            ...selected.map(
+              (item) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.delete_outline,
+                      color: Colors.red,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(item),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            const Text(
+              '⚠️ لا يمكن التراجع عن هذه العملية.',
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('إلغاء'),
+          ),
+
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              try {
+                await DBHelper.resetSelectedData(
+                  students: students,
+                  groups: groups,
+                  attendance: attendance,
+                  recitations: recitations,
+                  payments: payments,
+                  discounts: discounts,
+                  sessions: sessions,
+                );
+
+                if (!mounted) return;
+
+                Navigator.pop(context);
+
+                await loadSummary();
+
+                if (!mounted) return;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: Colors.green,
+                    content: Text(
+                      'تم حذف البيانات المحددة بنجاح',
+                    ),
+                  ),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: Colors.red,
+                    content: Text(
+                      e.toString().replaceFirst(
+                            'Exception: ',
+                            '',
+                          ),
+                    ),
+                  ),
+                );
+              }
+            },
+            child: const Text('حذف نهائي'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,6 +405,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         centerTitle: true,
         backgroundColor: Colors.teal,
+        actions: [
+          if (isTeacher)
+            IconButton(
+              icon: const Icon(
+                Icons.delete_forever,
+                color: Colors.white,
+              ),
+              tooltip: 'إعادة ضبط النظام',
+              onPressed: showSelectiveResetDialog,
+            ),
+        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -215,7 +563,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     "المبلغ المتبقي: $remaining ج.م",
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: Colors.white.withValues(alpha: 0.9),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.9),
                                     ),
                                   ),
                                 ),

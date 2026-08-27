@@ -1115,4 +1115,73 @@ WHERE s.year = ? AND r.session_number = ?
       whereArgs: [type],
     );
   }
+
+ static Future<void> resetSelectedData({
+  bool students = false,
+  bool groups = false,
+  bool attendance = false,
+  bool recitations = false,
+  bool payments = false,
+  bool discounts = false,
+  bool sessions = false,
+}) async {
+  final db = await openDB();
+
+  await db.transaction((txn) async {
+    // البيانات المرتبطة بالجلسات
+    if (attendance) {
+      await txn.delete('attendance');
+    }
+
+    if (recitations) {
+      await txn.delete('recitations');
+    }
+
+    // البيانات المالية
+    if (payments) {
+      await txn.delete('payments');
+    }
+
+    if (discounts) {
+      await txn.delete('discounts');
+    }
+
+    // الجلسات
+    if (sessions) {
+      // لو حذفنا sessions فقط، لازم نحذف attendance المرتبط بها
+      await txn.delete('attendance');
+
+      await txn.delete('sessions');
+    }
+
+    // الطلاب
+    if (students) {
+      // أي بيانات مرتبطة بالطلاب لازم تتمسح الأول
+      await txn.delete('attendance');
+      await txn.delete('recitations');
+      await txn.delete('payments');
+
+      await txn.delete('students');
+    }
+
+    // المجموعات
+    if (groups) {
+      // لا نحذف المجموعة لو لسه فيها طلاب
+      final studentsInGroups = await txn.rawQuery(
+        'SELECT COUNT(*) as count FROM students WHERE group_id IS NOT NULL',
+      );
+
+      final count = (studentsInGroups.first['count'] as num?)?.toInt() ?? 0;
+
+      if (count > 0) {
+        throw Exception(
+          'لا يمكن حذف المجموعات لأن هناك طلابًا مرتبطين بها',
+        );
+      }
+
+      await txn.delete('groups');
+    }
+  });
+}
+  
 }
