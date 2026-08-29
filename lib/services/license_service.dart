@@ -3,7 +3,7 @@ import 'package:crypto/crypto.dart';
 import 'package:unique_device_identifier/unique_device_identifier.dart';
 
 class LicenseService {
-  static const secret = "attendance_2026_secret";
+  static const secret = "eduflow_2026_activation";
 
   static Future<String> getDeviceId() async {
     return await UniqueDeviceIdentifier.getUniqueIdentifier() ?? "";
